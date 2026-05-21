@@ -1,0 +1,1952 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Frame Puzzle</title>
+    <meta name="theme-color" content="#0f0f15">
+    <meta name="description" content="A multitouch frame selection puzzle game.">
+    <style>
+        :root {
+            --glass-bg: rgba(25, 25, 35, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --neon-color: #00f3ff;
+            --neon-glow: 0 0 10px #00f3ff, 0 0 20px #00f3ff;
+            --text-color: #ffffff;
+            --bg-color: #0f0f15;
+            --success-color: #00ff88;
+        }
+
+        * {
+            box-sizing: border-box;
+            touch-action: none;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background: var(--bg-color);
+            color: var(--text-color);
+            overflow: hidden;
+            height: 100dvh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        #gameCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            pointer-events: auto;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            padding: 20px;
+            align-items: flex-start;
+        }
+
+        .hud {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            pointer-events: auto;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 15px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .hud-value {
+            color: var(--neon-color);
+            font-weight: bold;
+        }
+
+        .top-right-controls {
+            display: flex;
+            gap: 10px;
+            pointer-events: auto;
+        }
+
+        #btnCapture {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 4px solid #fff;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            pointer-events: auto;
+            cursor: pointer;
+            z-index: 20;
+            display: none;
+        }
+
+        #btnCapture:active {
+            background: #fff;
+        }
+
+        .icon-btn {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            color: white;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 1.4rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .icon-btn:hover,
+        .icon-btn:active {
+            box-shadow: var(--neon-glow);
+            border-color: var(--neon-color);
+            color: var(--neon-color);
+            transform: translateY(-2px);
+        }
+
+        .menu-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            padding: 40px 30px;
+            transition: opacity 0.3s;
+        }
+
+        .title {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            color: #fff;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: var(--neon-glow);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #aaa;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            background: rgba(0, 243, 255, 0.1);
+            border: 2px solid var(--neon-color);
+            color: var(--neon-color);
+            padding: 16px 32px;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: auto;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 1px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 300px;
+            height: 300px;
+            background: var(--neon-color);
+            border-radius: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            transition: transform 0.5s ease;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .btn:hover::before,
+        .btn:active::before {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .btn:hover,
+        .btn:active {
+            background: var(--neon-color);
+            color: #000;
+            box-shadow: var(--neon-glow);
+        }
+
+        .btn-secondary {
+            border-color: #fff;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-secondary:hover,
+        .btn-secondary:active {
+            background: #fff;
+            color: #000;
+            box-shadow: 0 0 10px #fff, 0 0 20px #fff;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            text-align: left;
+        }
+
+        select,
+        input[type="range"] {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            outline: none;
+            font-size: 1rem;
+        }
+
+        select option {
+            background: var(--bg-color);
+            color: white;
+        }
+
+        input[type="range"] {
+            accent-color: var(--neon-color);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 13px;
+            border: 1px solid var(--glass-border);
+            cursor: pointer;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--neon-color);
+            border-color: var(--neon-color);
+        }
+
+        .toggle-switch.active::after {
+            left: 26px;
+            background: #000;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        #toast {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: var(--neon-color);
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: bold;
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+            pointer-events: none;
+            box-shadow: var(--neon-glow);
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .hidden {
+            display: none !important;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        @keyframes shake {
+            0% {
+                transform: translate(1px, 1px) rotate(0deg);
+            }
+
+            10% {
+                transform: translate(-1px, -2px) rotate(-1deg);
+            }
+
+            20% {
+                transform: translate(-3px, 0px) rotate(1deg);
+            }
+
+            30% {
+                transform: translate(3px, 2px) rotate(0deg);
+            }
+
+            40% {
+                transform: translate(1px, -1px) rotate(1deg);
+            }
+
+            50% {
+                transform: translate(-1px, 2px) rotate(-1deg);
+            }
+
+            60% {
+                transform: translate(-3px, 1px) rotate(0deg);
+            }
+
+            70% {
+                transform: translate(3px, 1px) rotate(-1deg);
+            }
+
+            80% {
+                transform: translate(-1px, -1px) rotate(1deg);
+            }
+
+            90% {
+                transform: translate(1px, 2px) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(1px, -2px) rotate(-1deg);
+            }
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        #redFlash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.3);
+            pointer-events: none;
+            z-index: 99;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .celebration {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .instruction-overlay {
+            position: absolute;
+            bottom: 20%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 25px;
+            border-radius: 20px;
+            border: 1px solid var(--neon-color);
+            box-shadow: var(--neon-glow);
+            text-align: center;
+            font-size: 1.1rem;
+            pointer-events: none;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.7;
+                transform: translateX(-50%) scale(0.95);
+            }
+
+            50% {
+                opacity: 1;
+                transform: translateX(-50%) scale(1.05);
+            }
+
+            100% {
+                opacity: 0.7;
+                transform: translateX(-50%) scale(0.95);
+            }
+        }
+
+        @keyframes popOut {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+
+            70% {
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .pop-animation {
+            animation: popOut 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Modal Close Button */
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close-btn:hover {
+            color: var(--neon-color);
+        }
+    </style>
+</head>
+
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div class="ui-layer" id="uiLayer">
+        <div class="header">
+            <div class="hud hidden" id="hud">
+                <div class="hud-item">Time: <span class="hud-value" id="timeDisp">00:00</span></div>
+                <div class="hud-item">Moves: <span class="hud-value" id="movesDisp">0</span></div>
+                <div class="hud-item hidden" id="doomDisp"
+                    style="color: #ff0000; text-shadow: 0 0 10px #ff0000; margin-left: 10px;">DOOM: <span>10</span>s
+                </div>
+                <button class="icon-btn" id="btnHint" title="Hint">💡</button>
+                <button class="icon-btn" id="btnRestart" title="Restart">↺</button>
+                <button class="btn btn-secondary hidden" id="btnSubmitVoid"
+                    style="margin-left: 10px; font-size: 0.8rem; padding: 5px 10px;">Submit</button>
+            </div>
+            <div class="top-right-controls">
+                <div class="icon-btn hidden" id="btnBackToMenu" title="Back to Menu">🏠</div>
+                <div class="icon-btn" id="btnSettings" title="Settings">⚙</div>
+            </div>
+        </div>
+
+        <!-- Main Menu -->
+        <div class="glass-panel menu-container" id="mainMenu" style="width: 95%; max-width: 1000px; padding: 30px;">
+            <div class="title" style="font-size: 2.5rem; margin-bottom: 30px;">FRAME PUZZLE</div>
+
+            <div id="modeAccordion"
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; text-align: left; align-items: stretch;">
+
+                <!-- INITIATION CARD -->
+                <div class="mode-card active" id="cardInitiation"
+                    style="border: 2px solid #00f3ff; border-radius: 10px; overflow: hidden; background: rgba(0,243,255,0.1); cursor: pointer; transition: all 0.3s; display: flex; flex-direction: column;">
+                    <div
+                        style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h3 style="color: #00f3ff; margin: 0 0 10px 0; text-align: center; font-size: 1.5rem;">
+                            INITIATION</h3>
+                        <p style="font-size: 0.9rem; margin: 0; text-align: center; color: #ddd;">Standard square grids.
+                            Perfect for beginners.</p>
+                    </div>
+                    <div class="mode-settings" id="settingsInitiation"
+                        style="padding: 0 20px 20px 20px; text-align: center;">
+                        <hr style="border-color: rgba(0,243,255,0.3); margin-bottom: 20px;">
+                        <label
+                            style="color: #00f3ff; font-size: 1.1rem; margin-right: 10px; display: block; margin-bottom: 10px;">Difficulty
+                            (NxN):</label>
+                        <input type="number" id="mainDifficulty" min="1" max="11" value="3"
+                            style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #00f3ff; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem; margin-bottom: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-secondary"
+                                onclick="playSound('click'); uiElements.fileInput.click();"
+                                style="font-size: 0.9rem; padding: 12px;">Upload Image</button>
+                            <button class="btn btn-secondary" onclick="playSound('click'); startCamera();"
+                                style="font-size: 0.9rem; padding: 12px;">Use Camera</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DIMENSION CARD -->
+                <div class="mode-card" id="cardDimension"
+                    style="border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.05); cursor: pointer; opacity: 0.7; transition: all 0.3s; display: flex; flex-direction: column;">
+                    <div
+                        style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h3 style="color: #ff0055; margin: 0 0 10px 0; text-align: center; font-size: 1.5rem;">DIMENSION
+                            BREAKER</h3>
+                        <p style="font-size: 0.9rem; margin: 0; text-align: center; color: #ddd;">Asymmetric grids with
+                            glitch effects.</p>
+                    </div>
+                    <div class="mode-settings hidden" id="settingsDimension"
+                        style="padding: 0 20px 20px 20px; text-align: center;">
+                        <hr style="border-color: rgba(255,0,85,0.3); margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label
+                                    style="color: #ff0055; font-size: 1.1rem; display: block; margin-bottom: 5px;">Cols:</label>
+                                <input type="number" id="dimCols" min="1" max="10" value="3"
+                                    style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #ff0055; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem;">
+                            </div>
+                            <div>
+                                <label
+                                    style="color: #ff0055; font-size: 1.1rem; display: block; margin-bottom: 5px;">Rows:</label>
+                                <input type="number" id="dimRows" min="1" max="10" value="5"
+                                    style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #ff0055; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem;">
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-secondary"
+                                onclick="playSound('click'); uiElements.fileInput.click();"
+                                style="font-size: 0.9rem; padding: 12px;">Upload Image</button>
+                            <button class="btn btn-secondary" onclick="playSound('click'); startCamera();"
+                                style="font-size: 0.9rem; padding: 12px;">Use Camera</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHAOS CARD -->
+                <div class="mode-card" id="cardChaos"
+                    style="border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.05); cursor: pointer; opacity: 0.7; transition: all 0.3s; display: flex; flex-direction: column;">
+                    <div
+                        style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h3 style="color: #ffaa00; margin: 0 0 10px 0; text-align: center; font-size: 1.5rem;">CHAOS
+                            SPIN</h3>
+                        <p style="font-size: 0.9rem; margin: 0; text-align: center; color: #ddd;">Pieces rotate
+                            randomly. Mind-bending.</p>
+                    </div>
+                    <div class="mode-settings hidden" id="settingsChaos"
+                        style="padding: 0 20px 20px 20px; text-align: center;">
+                        <hr style="border-color: rgba(255,170,0,0.3); margin-bottom: 20px;">
+                        <label
+                            style="color: #ffaa00; font-size: 1.1rem; margin-right: 10px; display: block; margin-bottom: 10px;">Difficulty
+                            (NxN):</label>
+                        <input type="number" id="chaosDifficulty" min="1" max="11" value="3"
+                            style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #ffaa00; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem; margin-bottom: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-secondary"
+                                onclick="playSound('click'); uiElements.fileInput.click();"
+                                style="font-size: 0.9rem; padding: 12px;">Upload Image</button>
+                            <button class="btn btn-secondary" onclick="playSound('click'); startCamera();"
+                                style="font-size: 0.9rem; padding: 12px;">Use Camera</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VOID MEMORY CARD -->
+                <div class="mode-card" id="cardVoid"
+                    style="border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.05); cursor: pointer; opacity: 0.7; transition: all 0.3s; display: flex; flex-direction: column;">
+                    <div
+                        style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h3 style="color: #9900ff; margin: 0 0 10px 0; text-align: center; font-size: 1.5rem;">VOID
+                            MEMORY</h3>
+                        <p style="font-size: 0.9rem; margin: 0; text-align: center; color: #ddd;">Memorize. Hide. Solve.
+                        </p>
+                    </div>
+                    <div class="mode-settings hidden" id="settingsVoid"
+                        style="padding: 0 20px 20px 20px; text-align: center;">
+                        <hr style="border-color: rgba(153,0,255,0.3); margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label
+                                    style="color: #9900ff; font-size: 1.1rem; display: block; margin-bottom: 5px;">Difficulty:</label>
+                                <input type="number" id="voidDifficulty" min="1" max="10" value="3"
+                                    style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #9900ff; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem;">
+                            </div>
+                            <div>
+                                <label
+                                    style="color: #9900ff; font-size: 1.1rem; display: block; margin-bottom: 5px;">Time
+                                    (s):</label>
+                                <select id="voidTime"
+                                    style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #9900ff; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 70px; font-size: 1.1rem;">
+                                    <option value="5">5</option>
+                                    <option value="10" selected>10</option>
+                                    <option value="15">15</option>
+                                    <option value="20">20</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-secondary"
+                                onclick="playSound('click'); uiElements.fileInput.click();"
+                                style="font-size: 0.9rem; padding: 12px;">Upload Image</button>
+                            <button class="btn btn-secondary" onclick="playSound('click'); startCamera();"
+                                style="font-size: 0.9rem; padding: 12px;">Use Camera</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DOOM CLOCK CARD -->
+                <div class="mode-card" id="cardDoom"
+                    style="border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.05); cursor: pointer; opacity: 0.7; transition: all 0.3s; display: flex; flex-direction: column;">
+                    <div
+                        style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h3
+                            style="color: #ff0000; margin: 0 0 10px 0; text-align: center; font-size: 1.5rem; text-shadow: 0 0 10px rgba(255,0,0,0.5);">
+                            DOOM CLOCK</h3>
+                        <p style="font-size: 0.9rem; margin: 0; text-align: center; color: #ddd;">Solve before pieces
+                            auto-reshuffle.</p>
+                    </div>
+                    <div class="mode-settings hidden" id="settingsDoom"
+                        style="padding: 0 20px 20px 20px; text-align: center;">
+                        <hr style="border-color: rgba(255,0,0,0.3); margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label
+                                    style="color: #ff0000; font-size: 1.1rem; display: block; margin-bottom: 5px;">Difficulty:</label>
+                                <input type="number" id="doomDifficulty" min="1" max="10" value="3"
+                                    style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #ff0000; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem;">
+                            </div>
+                            <div>
+                                <label
+                                    style="color: #ff0000; font-size: 1.1rem; display: block; margin-bottom: 5px;">Time
+                                    (s):</label>
+                                <input type="number" id="doomTime" min="3" max="30" value="10"
+                                    style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #ff0000; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem;">
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-secondary"
+                                onclick="playSound('click'); uiElements.fileInput.click();"
+                                style="font-size: 0.9rem; padding: 12px;">Upload Image</button>
+                            <button class="btn btn-secondary" onclick="playSound('click'); startCamera();"
+                                style="font-size: 0.9rem; padding: 12px;">Use Camera</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRAVITY HELL CARD -->
+                <div class="mode-card" id="cardGravity"
+                    style="border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.05); cursor: pointer; opacity: 0.7; transition: all 0.3s; display: flex; flex-direction: column;">
+                    <div
+                        style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h3
+                            style="color: #00ff88; margin: 0 0 10px 0; text-align: center; font-size: 1.5rem; text-shadow: 0 0 10px rgba(0,255,136,0.5);">
+                            GRAVITY HELL</h3>
+                        <p style="font-size: 0.9rem; margin: 0; text-align: center; color: #ddd;">Pieces are affected by
+                            gravity. Catch and stack them!</p>
+                    </div>
+                    <div class="mode-settings hidden" id="settingsGravity"
+                        style="padding: 0 20px 20px 20px; text-align: center;">
+                        <hr style="border-color: rgba(0,255,136,0.3); margin-bottom: 20px;">
+                        <label
+                            style="color: #00ff88; font-size: 1.1rem; margin-right: 10px; display: block; margin-bottom: 10px;">Difficulty
+                            (NxN):</label>
+                        <input type="number" id="gravityDifficulty" min="1" max="10" value="3"
+                            style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #00ff88; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem; margin-bottom: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-secondary"
+                                onclick="playSound('click'); uiElements.fileInput.click();"
+                                style="font-size: 0.9rem; padding: 12px;">Upload Image</button>
+                            <button class="btn btn-secondary" onclick="playSound('click'); startCamera();"
+                                style="font-size: 0.9rem; padding: 12px;">Use Camera</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <input type="file" id="fileInput" accept="image/*" style="display: none;">
+        </div>
+
+        <video id="cameraVideo" autoplay playsinline style="display: none;"></video>
+        <video id="htVideo" autoplay playsinline style="display: none;"></video>
+        <button id="btnCapture" title="Capture Photo"></button>
+
+        <!-- Settings Modal -->
+        <div class="glass-panel menu-container hidden" id="settingsModal">
+            <button class="close-btn" id="btnCloseSettings">✕</button>
+            <h2 style="margin-bottom: 20px; color: var(--neon-color); text-shadow: var(--neon-glow);">Settings</h2>
+
+            <div class="setting-row">
+                <span>Sound Effects</span>
+                <div class="toggle-switch active" id="toggleSound"></div>
+            </div>
+
+            <div class="setting-row">
+                <span>Haptic Feedback</span>
+                <div class="toggle-switch active" id="toggleHaptic"></div>
+            </div>
+
+            <div class="setting-row">
+                <span>Hand Tracking 🖐️</span>
+                <div class="toggle-switch" id="toggleHandTracking"></div>
+            </div>
+
+            <button class="btn" id="btnApplySettings" style="margin-top: 10px;">Apply</button>
+        </div>
+
+        <!-- Win Screen -->
+        <div class="glass-panel menu-container hidden" id="winScreen">
+            <div class="title"
+                style="color: var(--success-color); font-size: 2.2rem; -webkit-text-stroke: 1px var(--success-color); text-shadow: 0 0 10px var(--success-color), 0 0 20px var(--success-color);">
+                Congratulations!</div>
+            <div style="font-size: 1.2rem; margin-bottom: 20px;">
+                <p>Time: <span class="hud-value" id="winTime">00:00</span></p>
+                <p>Moves: <span class="hud-value" id="winMoves">0</span></p>
+            </div>
+            <button class="btn" id="btnPlayAgain">New Puzzle</button>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instruction-overlay hidden" id="instructionSelect">
+            Drag to draw a box and create your puzzle!
+        </div>
+
+        <div id="redFlash"></div>
+
+        <!-- Void Memorize Overlay -->
+        <div id="memorizeOverlay" class="hidden"
+            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 8rem; color: white; text-shadow: 0 0 30px #9900ff, 0 0 10px #9900ff; z-index: 10; pointer-events: none; font-weight: bold; font-family: monospace;">
+            10
+        </div>
+    </div>
+
+    <div id="toast">Message</div>
+
+    <script>
+        /** --- CONFIG & STATE --- */
+        const GameState = {
+            MENU: 0,
+            SELECTING: 1,
+            MEMORIZING: 2,
+            PLAYING: 3,
+            WON: 4,
+            CAMERA: 5
+        };
+
+        const config = {
+            gameMode: 'INITIATION',
+            gridCols: 3,
+            gridRows: 3,
+            sound: true,
+            haptic: true,
+            handTracking: false,
+            snapSensitivity: 20,
+            demoImageUrl: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1080&q=80',
+            voidTime: 10,
+            doomTime: 10
+        };
+
+        let state = GameState.MENU;
+        let sourceImage = null;
+        let puzzlePieces = [];
+        let pointers = new Map();
+        let frameRect = null;
+        let dragStart = null;
+        let memorizeTimer = 0;
+        let memorizeInterval = null;
+        let doomCurrentTime = 0;
+
+        let startTime = 0;
+        let timerInterval = null;
+        let moves = 0;
+        let hintActiveTime = 0;
+
+        let draggingPiece = null;
+        let dragOffset = { x: 0, y: 0 };
+        let draggingPieceStartX = 0;
+        let draggingPieceStartY = 0;
+        let activePointerId = null;
+        let cameraStream = null;
+        let confetti = [];
+
+        // Hand Tracking State
+        let htHands = null;
+        let htCamera = null;
+        let isHandTracking = false;
+        let htPointerId = 999;
+        let htWasPinched = false;
+        let htCursor = { x: 0, y: 0, active: false };
+
+        // Audio synthesis for retro UI sounds
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        let audioContext = null;
+
+        /** --- DOM ELEMENTS --- */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+
+        const uiElements = {
+            mainMenu: document.getElementById('mainMenu'),
+            settingsModal: document.getElementById('settingsModal'),
+            winScreen: document.getElementById('winScreen'),
+            hud: document.getElementById('hud'),
+            btnBackToMenu: document.getElementById('btnBackToMenu'),
+            btnRestart: document.getElementById('btnRestart'),
+            btnSubmitVoid: document.getElementById('btnSubmitVoid'),
+            btnSettings: document.getElementById('btnSettings'),
+            fileInput: document.getElementById('fileInput'),
+            cameraVideo: document.getElementById('cameraVideo'),
+            btnCapture: document.getElementById('btnCapture'),
+            timeDisp: document.getElementById('timeDisp'),
+            movesDisp: document.getElementById('movesDisp'),
+            doomDisp: document.getElementById('doomDisp'),
+            toast: document.getElementById('toast'),
+            instructionSelect: document.getElementById('instructionSelect'),
+            memorizeOverlay: document.getElementById('memorizeOverlay'),
+            redFlash: document.getElementById('redFlash')
+        };
+
+        /** --- INITIALIZATION --- */
+        function init() {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            loadSettings();
+            setupEventListeners();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem('framePuzzleSettings');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    config.gameMode = parsed.gameMode || config.gameMode;
+                    config.gridCols = parsed.gridCols || config.gridCols;
+                    config.gridRows = parsed.gridRows || config.gridRows;
+                    config.voidTime = parsed.voidTime || config.voidTime;
+                    config.sound = parsed.sound !== undefined ? parsed.sound : config.sound;
+                    config.haptic = parsed.haptic !== undefined ? parsed.haptic : config.haptic;
+                    config.handTracking = parsed.handTracking !== undefined ? parsed.handTracking : config.handTracking;
+                }
+            } catch (e) { }
+
+            if (config.gameMode === 'INITIATION') {
+                const diffSelect = document.getElementById('mainDifficulty');
+                if (diffSelect) diffSelect.value = config.gridCols;
+            } else if (config.gameMode === 'DIMENSION') {
+                document.getElementById('dimCols').value = config.gridCols;
+                document.getElementById('dimRows').value = config.gridRows;
+            } else if (config.gameMode === 'CHAOS') {
+                document.getElementById('chaosDifficulty').value = config.gridCols;
+            } else if (config.gameMode === 'VOID') {
+                document.getElementById('voidDifficulty').value = config.gridCols;
+                document.getElementById('voidTime').value = config.voidTime;
+            } else if (config.gameMode === 'DOOM') {
+                document.getElementById('doomDifficulty').value = config.gridCols;
+                document.getElementById('doomTime').value = config.doomTime;
+            } else if (config.gameMode === 'GRAVITY') {
+                document.getElementById('gravityDifficulty').value = config.gridCols;
+            }
+            if (!config.sound) document.getElementById('toggleSound').classList.remove('active');
+            if (!config.haptic) document.getElementById('toggleHaptic').classList.remove('active');
+            if (config.handTracking) {
+                document.getElementById('toggleHandTracking').classList.add('active');
+                initHandTracking();
+            }
+        }
+
+        function saveSettings() {
+            localStorage.setItem('framePuzzleSettings', JSON.stringify({
+                gameMode: config.gameMode,
+                gridCols: config.gridCols,
+                gridRows: config.gridRows,
+                voidTime: config.voidTime,
+                sound: config.sound,
+                haptic: config.haptic,
+                handTracking: config.handTracking
+            }));
+        }
+
+        function showToast(msg) {
+            uiElements.toast.innerText = msg;
+            uiElements.toast.classList.add('show');
+            setTimeout(() => {
+                uiElements.toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function vibrate(ms) {
+            if (config.haptic && navigator.vibrate) {
+                navigator.vibrate(ms);
+            }
+        }
+
+        function playSound(type) {
+            if (!config.sound) return;
+            if (!audioContext) {
+                audioContext = new AudioCtx();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+
+            const now = audioContext.currentTime;
+
+            if (type === 'snap') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now);
+                osc.stop(now + 0.1);
+            } else if (type === 'win') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.setValueAtTime(400, now + 0.1);
+                osc.frequency.setValueAtTime(500, now + 0.2);
+                osc.frequency.setValueAtTime(800, now + 0.3);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.linearRampToValueAtTime(0, now + 0.6);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            } else if (type === 'click') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(200, now);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now);
+                osc.stop(now + 0.05);
+            }
+        }
+
+        /** --- EVENT LISTENERS --- */
+        function setupEventListeners() {
+
+            function updateModeUI() {
+                document.querySelectorAll('.mode-card').forEach(card => {
+                    card.style.borderColor = 'transparent';
+                    card.style.background = 'rgba(255,255,255,0.05)';
+                    card.style.opacity = '0.7';
+                });
+                document.getElementById('settingsInitiation').classList.add('hidden');
+                document.getElementById('settingsDimension').classList.add('hidden');
+                document.getElementById('settingsChaos').classList.add('hidden');
+                document.getElementById('settingsVoid').classList.add('hidden');
+
+                if (config.gameMode === 'INITIATION') {
+                    let card = document.getElementById('cardInitiation');
+                    card.style.borderColor = '#00f3ff';
+                    card.style.background = 'rgba(0,243,255,0.1)';
+                    card.style.opacity = '1';
+                    document.getElementById('settingsInitiation').classList.remove('hidden');
+                    document.documentElement.style.setProperty('--neon-color', '#00f3ff');
+                } else if (config.gameMode === 'DIMENSION') {
+                    let card = document.getElementById('cardDimension');
+                    card.style.borderColor = '#ff0055';
+                    card.style.background = 'rgba(255,0,85,0.1)';
+                    card.style.opacity = '1';
+                    document.getElementById('settingsDimension').classList.remove('hidden');
+                    document.documentElement.style.setProperty('--neon-color', '#ff0055');
+                } else if (config.gameMode === 'CHAOS') {
+                    let card = document.getElementById('cardChaos');
+                    card.style.borderColor = '#ffaa00';
+                    card.style.background = 'rgba(255,170,0,0.1)';
+                    card.style.opacity = '1';
+                    document.getElementById('settingsChaos').classList.remove('hidden');
+                    document.documentElement.style.setProperty('--neon-color', '#ffaa00');
+                } else if (config.gameMode === 'VOID') {
+                    let card = document.getElementById('cardVoid');
+                    card.style.borderColor = '#9900ff';
+                    card.style.background = 'rgba(153,0,255,0.1)';
+                    card.style.opacity = '1';
+                    document.getElementById('settingsVoid').classList.remove('hidden');
+                    document.documentElement.style.setProperty('--neon-color', '#9900ff');
+                } else if (config.gameMode === 'DOOM') {
+                    let card = document.getElementById('cardDoom');
+                    card.style.borderColor = '#ff0000';
+                    card.style.background = 'rgba(255,0,0,0.1)';
+                    card.style.opacity = '1';
+                    document.getElementById('settingsDoom').classList.remove('hidden');
+                    document.documentElement.style.setProperty('--neon-color', '#ff0000');
+                } else if (config.gameMode === 'GRAVITY') {
+                    let card = document.getElementById('cardGravity');
+                    card.style.borderColor = '#00ff88';
+                    card.style.background = 'rgba(0,255,136,0.1)';
+                    card.style.opacity = '1';
+                    document.getElementById('settingsGravity').classList.remove('hidden');
+                    document.documentElement.style.setProperty('--neon-color', '#00ff88');
+                }
+            }
+
+            document.getElementById('cardInitiation').addEventListener('click', () => {
+                if (config.gameMode !== 'INITIATION') playSound('click');
+                config.gameMode = 'INITIATION';
+                let val = parseInt(document.getElementById('mainDifficulty').value) || 3;
+                config.gridCols = val;
+                config.gridRows = val;
+                updateModeUI();
+                saveSettings();
+            });
+
+            document.getElementById('cardDimension').addEventListener('click', () => {
+                if (config.gameMode !== 'DIMENSION') playSound('click');
+                config.gameMode = 'DIMENSION';
+                validateDimensionInput();
+                updateModeUI();
+                saveSettings();
+            });
+
+            document.getElementById('cardChaos').addEventListener('click', () => {
+                if (config.gameMode !== 'CHAOS') playSound('click');
+                config.gameMode = 'CHAOS';
+                let val = parseInt(document.getElementById('chaosDifficulty').value) || 3;
+                config.gridCols = val;
+                config.gridRows = val;
+                updateModeUI();
+                saveSettings();
+            });
+
+            document.getElementById('cardVoid').addEventListener('click', () => {
+                if (config.gameMode !== 'VOID') playSound('click');
+                config.gameMode = 'VOID';
+                let val = parseInt(document.getElementById('voidDifficulty').value) || 3;
+                config.gridCols = val;
+                config.gridRows = val;
+                config.voidTime = parseInt(document.getElementById('voidTime').value) || 10;
+                updateModeUI();
+                saveSettings();
+            });
+
+            document.getElementById('cardDoom').addEventListener('click', () => {
+                if (config.gameMode !== 'DOOM') playSound('click');
+                config.gameMode = 'DOOM';
+                let val = parseInt(document.getElementById('doomDifficulty').value) || 3;
+                config.gridCols = val;
+                config.gridRows = val;
+                config.doomTime = parseInt(document.getElementById('doomTime').value) || 10;
+                updateModeUI();
+                saveSettings();
+            });
+
+            document.getElementById('cardGravity').addEventListener('click', () => {
+                if (config.gameMode !== 'GRAVITY') playSound('click');
+                config.gameMode = 'GRAVITY';
+                let val = parseInt(document.getElementById('gravityDifficulty').value) || 3;
+                config.gridCols = val;
+                config.gridRows = val;
+                updateModeUI();
+                saveSettings();
+            });
+
+            document.getElementById('chaosDifficulty').addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (val > 10) {
+                    showToast("oh common just increasing the number doesn't increase the difficulty try to solve other modes");
+                    val = 10;
+                    e.target.value = 10;
+                } else if (val < 1 || isNaN(val)) {
+                    val = 1;
+                    e.target.value = 1;
+                }
+                config.gameMode = 'CHAOS';
+                config.gridCols = val;
+                config.gridRows = val;
+                saveSettings();
+            });
+
+            document.getElementById('voidDifficulty').addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (val > 10) {
+                    showToast("oh common just increasing the number doesn't increase the difficulty try to solve other modes");
+                    val = 10;
+                    e.target.value = 10;
+                } else if (val < 1 || isNaN(val)) {
+                    val = 1;
+                    e.target.value = 1;
+                }
+                config.gameMode = 'VOID';
+                config.gridCols = val;
+                config.gridRows = val;
+                saveSettings();
+            });
+
+            document.getElementById('voidTime').addEventListener('change', (e) => {
+                config.voidTime = parseInt(e.target.value) || 10;
+                saveSettings();
+            });
+
+            document.getElementById('doomDifficulty').addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (val > 10) {
+                    showToast("oh common just increasing the number doesn't increase the difficulty try to solve other modes");
+                    val = 10; e.target.value = 10;
+                } else if (val < 1 || isNaN(val)) {
+                    val = 1; e.target.value = 1;
+                }
+                config.gameMode = 'DOOM';
+                config.gridCols = val;
+                config.gridRows = val;
+                saveSettings();
+            });
+
+            document.getElementById('doomTime').addEventListener('change', (e) => {
+                config.doomTime = parseInt(e.target.value) || 10;
+                saveSettings();
+            });
+
+            document.getElementById('gravityDifficulty').addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (val > 10) {
+                    showToast("Try other modes to increase the level.");
+                    val = 10; e.target.value = 10;
+                } else if (val < 1 || isNaN(val)) {
+                    val = 1; e.target.value = 1;
+                }
+                config.gameMode = 'GRAVITY';
+                config.gridCols = val;
+                config.gridRows = val;
+                saveSettings();
+            });
+
+            document.getElementById('mainDifficulty').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('dimCols').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('dimRows').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('chaosDifficulty').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('voidDifficulty').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('voidTime').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('doomDifficulty').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('doomTime').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('gravityDifficulty').addEventListener('click', (e) => e.stopPropagation());
+
+            // Initial call to sync UI
+            updateModeUI();
+            document.getElementById('mainDifficulty').addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (val > 10) {
+                    showToast("u think just increasing the number the diffculty increases , try another mode to increae the level");
+                    val = 10;
+                    e.target.value = 10;
+                } else if (val < 1 || isNaN(val)) {
+                    val = 1;
+                    e.target.value = 1;
+                }
+                config.gameMode = 'INITIATION';
+                config.gridCols = val;
+                config.gridRows = val;
+                saveSettings();
+            });
+
+            function validateDimensionInput() {
+                let cols = parseInt(document.getElementById('dimCols').value);
+                let rows = parseInt(document.getElementById('dimRows').value);
+                if (isNaN(cols)) cols = 3;
+                if (isNaN(rows)) rows = 5;
+
+                let showLimitMsg = false;
+                if (cols > 10) { cols = 10; showLimitMsg = true; }
+                if (rows > 10) { rows = 10; showLimitMsg = true; }
+                if (cols < 1) cols = 1;
+                if (rows < 1) rows = 1;
+
+                if (showLimitMsg) {
+                    showToast("u think just increasing the number the diffculty increases , try another mode to increae the level");
+                } else if (cols === rows) {
+                    showToast("Cols and Rows must not match in Dimension Breaker!");
+                    if (cols === 10) rows = 9;
+                    else rows = cols + 1;
+                }
+
+                document.getElementById('dimCols').value = cols;
+                document.getElementById('dimRows').value = rows;
+                config.gridCols = cols;
+                config.gridRows = rows;
+                config.gameMode = 'DIMENSION';
+                saveSettings();
+            }
+
+            document.getElementById('dimCols').addEventListener('change', validateDimensionInput);
+            document.getElementById('dimRows').addEventListener('change', validateDimensionInput);
+
+            uiElements.btnCapture.addEventListener('click', () => {
+                playSound('click');
+                captureCamera();
+            });
+
+            uiElements.btnSubmitVoid.addEventListener('click', () => {
+                if (state !== GameState.PLAYING) return;
+                playSound('click');
+                puzzlePieces.forEach(p => p.hidden = false);
+                uiElements.btnSubmitVoid.classList.add('hidden');
+
+                updateLocks();
+                if (puzzlePieces.every(p => p.locked)) {
+                    state = GameState.WON;
+                    clearInterval(timerInterval);
+                    playSound('win'); vibrate([50, 100, 50, 100, 200]); createConfetti();
+                    setTimeout(() => { uiElements.winTime.innerText = uiElements.timeDisp.innerText; uiElements.winMoves.innerText = moves; uiElements.winScreen.classList.remove('hidden'); uiElements.winScreen.classList.add('pop-animation'); uiElements.hud.classList.add('hidden'); }, 1000);
+                } else {
+                    showToast("better memorize next time");
+                    playSound('click');
+                    setTimeout(() => {
+                        if (state === GameState.PLAYING) {
+                            puzzlePieces.forEach(p => p.hidden = true);
+                            uiElements.btnSubmitVoid.classList.remove('hidden');
+                        }
+                    }, 2000);
+                }
+            });
+
+            uiElements.btnBackToMenu.addEventListener('click', () => {
+                playSound('click');
+                stopCamera();
+                if (memorizeInterval) clearInterval(memorizeInterval);
+                clearInterval(timerInterval);
+                state = GameState.MENU;
+                uiElements.mainMenu.classList.remove('hidden');
+                uiElements.settingsModal.classList.add('hidden');
+                uiElements.winScreen.classList.add('hidden');
+                uiElements.hud.classList.add('hidden');
+                uiElements.btnRestart.classList.add('hidden');
+                uiElements.btnBackToMenu.classList.add('hidden');
+                uiElements.instructionSelect.classList.add('hidden');
+                uiElements.memorizeOverlay.classList.add('hidden');
+                uiElements.btnCapture.style.display = 'none';
+                sourceImage = null;
+            });
+
+            uiElements.fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => loadImage(event.target.result);
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            document.getElementById('btnSettings').addEventListener('click', () => {
+                playSound('click');
+                uiElements.settingsModal.classList.remove('hidden');
+                uiElements.mainMenu.classList.add('hidden');
+            });
+
+            document.getElementById('btnCloseSettings').addEventListener('click', () => {
+                playSound('click');
+                uiElements.settingsModal.classList.add('hidden');
+                if (state === GameState.MENU) uiElements.mainMenu.classList.remove('hidden');
+            });
+
+            document.getElementById('btnHint').addEventListener('click', () => {
+                if (state === GameState.PLAYING) {
+                    playSound('click');
+                    hintActiveTime = Date.now() + 2000;
+                }
+            });
+
+            document.getElementById('btnApplySettings').addEventListener('click', () => {
+                playSound('click');
+                saveSettings();
+                uiElements.settingsModal.classList.add('hidden');
+                if (state === GameState.MENU) uiElements.mainMenu.classList.remove('hidden');
+            });
+
+            document.getElementById('toggleSound').addEventListener('click', (e) => {
+                playSound('click');
+                e.target.classList.toggle('active');
+                config.sound = e.target.classList.contains('active');
+            });
+
+            document.getElementById('toggleHaptic').addEventListener('click', (e) => {
+                playSound('click');
+                e.target.classList.toggle('active');
+                config.haptic = e.target.classList.contains('active');
+            });
+
+            document.getElementById('toggleHandTracking').addEventListener('click', (e) => {
+                playSound('click');
+                e.target.classList.toggle('active');
+                config.handTracking = e.target.classList.contains('active');
+                if (config.handTracking) {
+                    initHandTracking();
+                } else {
+                    stopHandTracking();
+                }
+            });
+
+            uiElements.btnRestart.addEventListener('click', () => {
+                playSound('click');
+                if (memorizeInterval) clearInterval(memorizeInterval);
+                clearInterval(timerInterval);
+                uiElements.memorizeOverlay.classList.add('hidden');
+                uiElements.btnSubmitVoid.classList.add('hidden');
+                startSelectionPhase();
+            });
+
+            document.getElementById('btnPlayAgain').addEventListener('click', () => {
+                playSound('click');
+                uiElements.winScreen.classList.add('hidden');
+                uiElements.winScreen.classList.remove('pop-animation');
+                state = GameState.MENU;
+                uiElements.mainMenu.classList.remove('hidden');
+                uiElements.hud.classList.add('hidden');
+            });
+
+            canvas.addEventListener('pointerdown', handlePointerDown);
+            window.addEventListener('pointermove', handlePointerMove);
+            window.addEventListener('pointerup', handlePointerUp);
+            window.addEventListener('pointercancel', handlePointerUp);
+
+            document.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                if (state === GameState.PLAYING && config.gameMode === 'CHAOS') {
+                    let clickedPiece = puzzlePieces.find(p => e.clientX >= p.currentX && e.clientX <= p.currentX + p.w && e.clientY >= p.currentY && e.clientY <= p.currentY + p.h);
+                    if (clickedPiece && !clickedPiece.locked) {
+                        clickedPiece.targetRotation += 90;
+                        playSound('click');
+                        checkWin();
+                    }
+                }
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key.toLowerCase() === 'r' && state === GameState.PLAYING && config.gameMode === 'CHAOS') {
+                    let targetPiece = draggingPiece || puzzlePieces.find(p => lastMousePos.x >= p.currentX && lastMousePos.x <= p.currentX + p.w && lastMousePos.y >= p.currentY && lastMousePos.y <= p.currentY + p.h);
+                    if (targetPiece && !targetPiece.locked) {
+                        targetPiece.targetRotation += 90;
+                        playSound('click');
+                        checkWin();
+                    }
+                }
+            });
+            canvas.addEventListener('touchstart', e => { e.preventDefault(); }, { passive: false });
+            canvas.addEventListener('touchmove', e => { e.preventDefault(); }, { passive: false });
+        }
+
+        /** --- GAME LOGIC --- */
+        function loadImage(src) {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.onload = () => {
+                sourceImage = img;
+                startSelectionPhase();
+            };
+            img.onerror = () => {
+                showToast("Failed to load image.");
+            };
+            img.src = src;
+        }
+
+        async function startCamera() {
+            try {
+                cameraStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                uiElements.cameraVideo.srcObject = cameraStream;
+                uiElements.cameraVideo.style.display = 'block';
+                state = GameState.CAMERA;
+
+                uiElements.mainMenu.classList.add('hidden');
+                uiElements.settingsModal.classList.add('hidden');
+                uiElements.btnBackToMenu.classList.remove('hidden');
+                uiElements.btnCapture.style.display = 'block';
+            } catch (err) {
+                showToast("Camera access denied or unavailable.");
+            }
+        }
+
+        function stopCamera() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            uiElements.cameraVideo.style.display = 'none';
+            uiElements.btnCapture.style.display = 'none';
+        }
+
+        function captureCamera() {
+            const video = uiElements.cameraVideo;
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = video.videoWidth;
+            tempCanvas.height = video.videoHeight;
+            const tCtx = tempCanvas.getContext('2d');
+            tCtx.drawImage(video, 0, 0);
+
+            stopCamera();
+
+            const img = new Image();
+            img.onload = () => {
+                sourceImage = img;
+                startSelectionPhase();
+            };
+            img.src = tempCanvas.toDataURL('image/jpeg');
+        }
+
+        function initHandTracking() {
+            if (isHandTracking) return;
+            showToast("Loading Hand Tracking AI...");
+
+            if (!window.Hands) {
+                loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js');
+                loadScript('https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js').then(() => {
+                    const video = document.getElementById('htVideo');
+                    htHands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+                    htHands.setOptions({ maxNumHands: 1, modelComplexity: 1, minDetectionConfidence: 0.7, minTrackingConfidence: 0.7 });
+                    htHands.onResults(onHandResults);
+                    htCamera = new Camera(video, { onFrame: async () => { await htHands.send({ image: video }); }, width: 640, height: 480 });
+                    htCamera.start();
+                    isHandTracking = true;
+                    showToast("Hand Tracking Active!");
+                });
+            }
+        }
+
+        function stopHandTracking() {
+            if (htCamera) { htCamera.stop(); htCamera = null; }
+            isHandTracking = false;
+        }
+
+        function loadScript(src) {
+            return new Promise((resolve) => {
+                const s = document.createElement('script');
+                s.src = src;
+                s.onload = resolve;
+                document.head.appendChild(s);
+            });
+        }
+
+        function onHandResults(results) {
+            if (!config.handTracking) return;
+            if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                const landmarks = results.multiHandLandmarks[0];
+                const indexTip = landmarks[8];
+                const thumbTip = landmarks[4];
+                const x = (1 - indexTip.x) * canvas.width;
+                const y = indexTip.y * canvas.height;
+                htCursor = { x, y, active: true };
+                const dist = Math.hypot(indexTip.x - thumbTip.x, indexTip.y - thumbTip.y);
+                const isPinched = dist < 0.06;
+                if (isPinched && !htWasPinched) handlePointerDown({ pointerId: htPointerId, clientX: x, clientY: y });
+                else if (isPinched && htWasPinched) handlePointerMove({ pointerId: htPointerId, clientX: x, clientY: y });
+                else if (!isPinched && htWasPinched) handlePointerUp({ pointerId: htPointerId });
+                htWasPinched = isPinched;
+            } else {
+                htCursor.active = false;
+                if (htWasPinched) { handlePointerUp({ pointerId: htPointerId }); htWasPinched = false; }
+            }
+        }
+
+        function createConfetti() {
+            confetti = [];
+            for (let i = 0; i < 150; i++) {
+                confetti.push({
+                    x: canvas.width / 2, y: canvas.height + 20, color: `hsl(${Math.random() * 360}, 100%, 60%)`, size: Math.random() * 10 + 6,
+                    speedY: -(Math.random() * 10 + 8), speedX: Math.random() * 16 - 8, spin: Math.random() * 0.4 - 0.2, angle: Math.random() * Math.PI * 2, gravity: 0.2
+                });
+            }
+        }
+
+        function startSelectionPhase() {
+            state = GameState.SELECTING;
+            frameRect = null;
+            dragStart = null;
+            uiElements.mainMenu.classList.add('hidden');
+            uiElements.settingsModal.classList.add('hidden');
+            uiElements.winScreen.classList.add('hidden');
+            uiElements.hud.classList.add('hidden');
+            uiElements.btnRestart.classList.remove('hidden');
+            uiElements.btnBackToMenu.classList.remove('hidden');
+            uiElements.instructionSelect.classList.remove('hidden');
+        }
+
+        function startPlayingPhase() {
+            uiElements.hud.classList.remove('hidden');
+            uiElements.timeDisp.innerText = "00:00";
+
+            if (config.gameMode === 'VOID') {
+                state = GameState.MEMORIZING;
+                uiElements.btnSubmitVoid.classList.add('hidden');
+                uiElements.memorizeOverlay.classList.remove('hidden');
+                memorizeTimer = config.voidTime || 10;
+                uiElements.memorizeOverlay.innerText = memorizeTimer;
+
+                puzzlePieces.forEach(p => p.hidden = false);
+
+                memorizeInterval = setInterval(() => {
+                    memorizeTimer--;
+                    if (memorizeTimer > 0) {
+                        uiElements.memorizeOverlay.innerText = memorizeTimer;
+                        playSound('click');
+                    } else {
+                        clearInterval(memorizeInterval);
+                        uiElements.memorizeOverlay.classList.add('hidden');
+                        puzzlePieces.forEach(p => p.hidden = true);
+                        uiElements.btnSubmitVoid.classList.remove('hidden');
+                        state = GameState.PLAYING;
+                        startTimer();
+                        playSound('snap');
+                    }
+                }, 1000);
+            } else {
+                state = GameState.PLAYING;
+                if (config.gameMode === 'DOOM') {
+                    doomCurrentTime = config.doomTime || 10;
+                    uiElements.doomDisp.classList.remove('hidden');
+                    uiElements.doomDisp.querySelector('span').innerText = doomCurrentTime;
+                } else {
+                    uiElements.doomDisp.classList.add('hidden');
+                }
+                startTimer();
+            }
+        }
+
+        function calculateImageRenderPos() {
+            if (!sourceImage) return { x: 0, y: 0, w: 0, h: 0 };
+            const canvasRatio = canvas.width / canvas.height;
+            const imgRatio = sourceImage.width / sourceImage.height;
+            let w, h, x, y;
+            if (canvasRatio > imgRatio) { h = canvas.height; w = canvas.height * imgRatio; x = (canvas.width - w) / 2; y = 0; }
+            else { w = canvas.width; h = canvas.width / imgRatio; x = 0; y = (canvas.height - h) / 2; }
+            return { x, y, w, h };
+        }
+
+        function handlePointerDown(e) {
+            if (state === GameState.MEMORIZING) return;
+            if (state !== GameState.SELECTING && state !== GameState.PLAYING) return;
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (state === GameState.SELECTING && !dragStart) {
+                dragStart = { x: e.clientX, y: e.clientY };
+                frameRect = { x: e.clientX, y: e.clientY, w: 0, h: 0 };
+                activePointerId = e.pointerId;
+            } else if (state === GameState.PLAYING && !draggingPiece) {
+                for (let i = puzzlePieces.length - 1; i >= 0; i--) {
+                    let p = puzzlePieces[i];
+                    if (e.clientX >= p.currentX && e.clientX <= p.currentX + p.w && e.clientY >= p.currentY && e.clientY <= p.currentY + p.h) {
+                        draggingPiece = p; activePointerId = e.pointerId; dragOffset = { x: e.clientX - p.currentX, y: e.clientY - p.currentY };
+                        draggingPieceStartX = p.currentX; draggingPieceStartY = p.currentY;
+                        puzzlePieces.splice(i, 1); puzzlePieces.push(p); vibrate(10); break;
+                    }
+                }
+            }
+        }
+
+        let lastMousePos = { x: 0, y: 0 };
+        window.addEventListener('pointermove', (e) => {
+            lastMousePos.x = e.clientX;
+            lastMousePos.y = e.clientY;
+        });
+
+        function handlePointerMove(e) {
+            if (!pointers.has(e.pointerId)) return;
+            pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+            if (state === GameState.SELECTING && dragStart && e.pointerId === activePointerId) {
+                let current = { x: e.clientX, y: e.clientY };
+                frameRect = { x: Math.min(dragStart.x, current.x), y: Math.min(dragStart.y, current.y), w: Math.abs(current.x - dragStart.x), h: Math.abs(current.y - dragStart.y) };
+            } else if (state === GameState.PLAYING && draggingPiece && e.pointerId === activePointerId) {
+                let newX = e.clientX - dragOffset.x;
+                let newY = e.clientY - dragOffset.y;
+                if (config.gameMode === 'GRAVITY') {
+                    draggingPiece.vx = newX - draggingPiece.currentX;
+                    draggingPiece.vy = newY - draggingPiece.currentY;
+                }
+                draggingPiece.currentX = newX;
+                draggingPiece.currentY = newY;
+            }
+        }
+
+        function handlePointerUp(e) {
+            pointers.delete(e.pointerId);
+            if (state === GameState.SELECTING && e.pointerId === activePointerId) {
+                if (frameRect && frameRect.w > 50 && frameRect.h > 50) createPuzzleFromSelection();
+                else { frameRect = null; dragStart = null; }
+                activePointerId = null;
+            } else if (state === GameState.PLAYING && draggingPiece && e.pointerId === activePointerId) {
+                const p = draggingPiece;
+
+                let dist = Math.hypot(p.currentX - draggingPieceStartX, p.currentY - draggingPieceStartY);
+
+                if (dist < 10 && config.gameMode === 'CHAOS') {
+                    p.targetRotation += 90;
+                    playSound('click');
+                    p.currentX = draggingPieceStartX;
+                    p.currentY = draggingPieceStartY;
+                } else if (config.gameMode === 'GRAVITY') {
+                    playSound('click');
+                } else {
+                    let targetSwapPiece = puzzlePieces.find(o => o !== p && (p.currentX + p.w / 2 >= o.currentX && p.currentX + p.w / 2 <= o.currentX + o.w && p.currentY + p.h / 2 >= o.currentY && p.currentY + p.h / 2 <= o.currentY + o.h));
+                    if (targetSwapPiece) {
+                        p.currentX = targetSwapPiece.currentX;
+                        p.currentY = targetSwapPiece.currentY;
+                        targetSwapPiece.currentX = draggingPieceStartX;
+                        targetSwapPiece.currentY = draggingPieceStartY;
+                        playSound('snap');
+                        vibrate(20);
+                    } else {
+                        p.currentX = draggingPieceStartX;
+                        p.currentY = draggingPieceStartY;
+                        playSound('click');
+                    }
+                }
+
+                updateLocks();
+                draggingPiece = null; activePointerId = null; moves++; uiElements.movesDisp.innerText = moves; checkWin();
+            }
+        }
+
+        function updateLocks() {
+            puzzlePieces.forEach(piece => {
+                let rotMod = (piece.targetRotation || 0) % 360;
+                if (rotMod < 0) rotMod += 360;
+                piece.locked = (Math.abs(piece.currentX - piece.targetX) < 1 && Math.abs(piece.currentY - piece.targetY) < 1 && rotMod === 0);
+            });
+        }
+
+        function createPuzzleFromSelection() {
+            if (!frameRect || !sourceImage) return;
+            const imgRenderPos = calculateImageRenderPos();
+            frameRect.x = Math.max(imgRenderPos.x, frameRect.x); frameRect.y = Math.max(imgRenderPos.y, frameRect.y);
+            frameRect.w = Math.min(imgRenderPos.x + imgRenderPos.w - frameRect.x, frameRect.w); frameRect.h = Math.min(imgRenderPos.y + imgRenderPos.h - frameRect.y, frameRect.h);
+            uiElements.instructionSelect.classList.add('hidden');
+            const sx = ((frameRect.x - imgRenderPos.x) / imgRenderPos.w) * sourceImage.width;
+            const sy = ((frameRect.y - imgRenderPos.y) / imgRenderPos.h) * sourceImage.height;
+            const sw = (frameRect.w / imgRenderPos.w) * sourceImage.width;
+            const sh = (frameRect.h / imgRenderPos.h) * sourceImage.height;
+            puzzlePieces = [];
+            const cols = config.gridCols, rows = config.gridRows;
+            const pieceW = frameRect.w / cols, pieceH = frameRect.h / rows;
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    puzzlePieces.push({ id: r * cols + c, targetX: frameRect.x + c * pieceW, targetY: frameRect.y + r * pieceH, sx: sx + (c * sw / cols), sy: sy + (r * sh / rows), sw: sw / cols, sh: sh / rows, w: pieceW, h: pieceH, currentX: 0, currentY: 0, locked: false, hidden: false, vx: 0, vy: 0 });
+                }
+            }
+            shufflePieces(); moves = 0; uiElements.movesDisp.innerText = moves; vibrate([30, 50, 30]);
+            startPlayingPhase();
+        }
+
+        function shufflePieces() {
+            let positions = puzzlePieces.map(p => ({ x: p.targetX, y: p.targetY }));
+            for (let i = positions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[positions[i], positions[j]] = [positions[j], positions[i]]; }
+            puzzlePieces.forEach((p, index) => {
+                p.currentX = positions[index].x;
+                p.currentY = positions[index].y;
+                p.rotation = 0;
+                p.targetRotation = 0;
+                if (config.gameMode === 'CHAOS') {
+                    let diffLevel = config.gridCols;
+                    let choices = [0, 90];
+                    if (diffLevel >= 4) choices.push(180);
+                    if (diffLevel >= 7) choices.push(270);
+                    p.rotation = choices[Math.floor(Math.random() * choices.length)];
+                    p.targetRotation = p.rotation;
+                }
+            });
+        }
+
+        function triggerDoomReshuffle() {
+            playSound('click'); // Warning sound
+            uiElements.redFlash.style.opacity = 1;
+            setTimeout(() => uiElements.redFlash.style.opacity = 0, 300);
+            document.body.classList.add('shake');
+            setTimeout(() => document.body.classList.remove('shake'), 500);
+
+            let unlocked = puzzlePieces.filter(p => !p.locked);
+            if (unlocked.length >= 2) {
+                let idx1 = Math.floor(Math.random() * unlocked.length);
+                let idx2 = Math.floor(Math.random() * unlocked.length);
+                while (idx1 === idx2) idx2 = Math.floor(Math.random() * unlocked.length);
+
+                let p1 = unlocked[idx1];
+                let p2 = unlocked[idx2];
+
+                let tempX = p1.currentX;
+                let tempY = p1.currentY;
+                p1.currentX = p2.currentX;
+                p1.currentY = p2.currentY;
+                p2.currentX = tempX;
+                p2.currentY = tempY;
+            }
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                if (state !== GameState.PLAYING) return;
+
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                uiElements.timeDisp.innerText = `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`;
+
+                if (config.gameMode === 'DOOM') {
+                    doomCurrentTime--;
+                    uiElements.doomDisp.querySelector('span').innerText = doomCurrentTime;
+                    if (doomCurrentTime <= 3 && doomCurrentTime > 0) {
+                        playSound('click'); // Warning tick
+                    }
+                    if (doomCurrentTime <= 0) {
+                        triggerDoomReshuffle();
+                        doomCurrentTime = config.doomTime || 10;
+                        uiElements.doomDisp.querySelector('span').innerText = doomCurrentTime;
+                    }
+                }
+            }, 1000);
+        }
+
+        function checkWin() {
+            if (config.gameMode === 'VOID') return; // Evaluated via submit button
+            updateLocks();
+            if (puzzlePieces.every(p => p.locked)) {
+                state = GameState.WON; clearInterval(timerInterval); playSound('win'); vibrate([50, 100, 50, 100, 200]); createConfetti();
+                setTimeout(() => { uiElements.winTime.innerText = uiElements.timeDisp.innerText; uiElements.winMoves.innerText = moves; uiElements.winScreen.classList.remove('hidden'); uiElements.winScreen.classList.add('pop-animation'); uiElements.hud.classList.add('hidden'); }, 1000);
+            }
+        }
+
+        function gameLoop(time) {
+            requestAnimationFrame(gameLoop);
+            ctx.fillStyle = '#0f0f15'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (state === GameState.PLAYING && config.gameMode === 'GRAVITY') {
+                for (let i = 0; i < puzzlePieces.length; i++) {
+                    let p1 = puzzlePieces[i];
+                    if (p1.locked || p1 === draggingPiece) continue;
+
+                    // Gravity Snap logic
+                    if (Math.abs(p1.currentX - p1.targetX) < 40 && Math.abs(p1.currentY - p1.targetY) < 40) {
+                        p1.currentX = p1.targetX;
+                        p1.currentY = p1.targetY;
+                        p1.vx = 0;
+                        p1.vy = 0;
+                        p1.locked = true;
+                        playSound('snap');
+                        checkWin();
+                        continue;
+                    }
+
+                    p1.vy += 0.5; // gravity
+                    p1.vx *= 0.98; // friction
+                    p1.vy *= 0.98; // friction
+
+                    p1.currentX += p1.vx;
+                    p1.currentY += p1.vy;
+
+                    if (p1.currentY + p1.h > canvas.height) {
+                        p1.currentY = canvas.height - p1.h;
+                        p1.vy *= -0.5;
+                        p1.vx *= 0.8;
+                    }
+                    if (p1.currentX < 0) { p1.currentX = 0; p1.vx *= -0.5; }
+                    if (p1.currentX + p1.w > canvas.width) { p1.currentX = canvas.width - p1.w; p1.vx *= -0.5; }
+
+                    for (let j = i + 1; j < puzzlePieces.length; j++) {
+                        let p2 = puzzlePieces[j];
+                        if (p2.locked || p2 === draggingPiece) continue;
+
+                        if (p1.currentX < p2.currentX + p2.w && p1.currentX + p1.w > p2.currentX && p1.currentY < p2.currentY + p2.h && p1.currentY + p1.h > p2.currentY) {
+                            let overlapX = Math.min(p1.currentX + p1.w - p2.currentX, p2.currentX + p2.w - p1.currentX);
+                            let overlapY = Math.min(p1.currentY + p1.h - p2.currentY, p2.currentY + p2.h - p1.currentY);
+
+                            if (overlapX < overlapY) {
+                                let sign = p1.currentX < p2.currentX ? -1 : 1;
+                                p1.currentX += sign * overlapX / 2;
+                                p2.currentX -= sign * overlapX / 2;
+                                let vTmp = p1.vx; p1.vx = p2.vx; p2.vx = vTmp;
+                            } else {
+                                let sign = p1.currentY < p2.currentY ? -1 : 1;
+                                p1.currentY += sign * overlapY / 2;
+                                p2.currentY -= sign * overlapY / 2;
+                                let vTmp = p1.vy; p1.vy = p2.vy; p2.vy = vTmp;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (state === GameState.SELECTING && sourceImage) {
+                const pos = calculateImageRenderPos();
+                ctx.globalAlpha = 0.4; ctx.drawImage(sourceImage, pos.x, pos.y, pos.w, pos.h); ctx.globalAlpha = 1.0;
+                if (frameRect) {
+                    ctx.save(); ctx.beginPath(); ctx.rect(frameRect.x, frameRect.y, frameRect.w, frameRect.h); ctx.clip(); ctx.drawImage(sourceImage, pos.x, pos.y, pos.w, pos.h); ctx.restore();
+                    ctx.strokeStyle = config.gameMode === 'DIMENSION' ? '#ff0055' : '#00f3ff';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
+                    ctx.strokeStyle = config.gameMode === 'DIMENSION' ? 'rgba(255, 0, 85, 0.4)' : (config.gameMode === 'CHAOS' ? 'rgba(255, 170, 0, 0.3)' : 'rgba(0, 243, 255, 0.3)');
+                    ctx.lineWidth = 1;
+                    const cW = frameRect.w / config.gridCols;
+                    const cH = frameRect.h / config.gridRows;
+                    ctx.beginPath();
+                    for (let i = 1; i < config.gridCols; i++) {
+                        ctx.moveTo(frameRect.x + i * cW, frameRect.y);
+                        ctx.lineTo(frameRect.x + i * cW, frameRect.y + frameRect.h);
+                    }
+                    for (let i = 1; i < config.gridRows; i++) {
+                        ctx.moveTo(frameRect.x, frameRect.y + i * cH);
+                        ctx.lineTo(frameRect.x + frameRect.w, frameRect.y + i * cH);
+                    }
+                    ctx.stroke();
+                }
+            } else if ((state === GameState.MEMORIZING || state === GameState.PLAYING || state === GameState.WON) && sourceImage) {
+                if (frameRect) { ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2; ctx.strokeRect(frameRect.x, frameRect.y, frameRect.w, frameRect.h); }
+                puzzlePieces.forEach(p => { if (p.locked) drawPiece(p); });
+                puzzlePieces.forEach(p => { if (!p.locked && p !== draggingPiece) drawPiece(p); });
+                if (state === GameState.PLAYING && draggingPiece) drawPiece(draggingPiece, true);
+                if (state === GameState.PLAYING && Date.now() < hintActiveTime && sourceImage && frameRect) {
+                    const imgRenderPos = calculateImageRenderPos();
+                    const sx = ((frameRect.x - imgRenderPos.x) / imgRenderPos.w) * sourceImage.width;
+                    const sy = ((frameRect.y - imgRenderPos.y) / imgRenderPos.h) * sourceImage.height;
+                    const sw = (frameRect.w / imgRenderPos.w) * sourceImage.width;
+                    const sh = (frameRect.h / imgRenderPos.h) * sourceImage.height;
+                    ctx.globalAlpha = 0.5; ctx.drawImage(sourceImage, sx, sy, sw, sh, frameRect.x, frameRect.y, frameRect.w, frameRect.h); ctx.globalAlpha = 1.0;
+                }
+                if (state === GameState.WON) {
+                    const flash = Math.sin(Date.now() / 150) * 0.5 + 0.5;
+                    ctx.strokeStyle = `rgba(0, 255, 136, ${flash})`;
+                    ctx.lineWidth = 4;
+                    ctx.shadowColor = '#00ff88';
+                    ctx.shadowBlur = 20 * flash;
+                    ctx.strokeRect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
+                    ctx.shadowBlur = 0;
+                    confetti.forEach(c => {
+                        c.speedY += c.gravity;
+                        c.x += c.speedX + Math.sin(time / 200 + c.angle) * 1.5;
+                        c.y += c.speedY;
+                        c.angle += c.spin;
+                        ctx.save();
+                        ctx.translate(c.x, c.y);
+                        ctx.rotate(c.angle);
+                        ctx.fillStyle = c.color;
+                        ctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size);
+                        ctx.restore();
+                    });
+                }
+            }
+
+            if (config.handTracking && htCursor.active) {
+                ctx.beginPath();
+                ctx.arc(htCursor.x, htCursor.y, htWasPinched ? 10 : 15, 0, Math.PI * 2);
+                ctx.fillStyle = htWasPinched ? 'rgba(0, 255, 136, 0.5)' : 'rgba(0, 243, 255, 0.5)';
+                ctx.fill();
+                ctx.strokeStyle = htWasPinched ? '#00ff88' : '#00f3ff';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        }
+
+        function drawPiece(p, isDragging = false) {
+            ctx.save();
+
+            if (config.gameMode === 'DIMENSION' && !p.locked && Math.random() < 0.02) {
+                ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
+                if (Math.random() < 0.3) ctx.filter = `hue-rotate(${Math.random() * 90}deg)`;
+            }
+
+            if (p.rotation !== undefined) {
+                p.rotation += (p.targetRotation - p.rotation) * 0.15;
+                let cx = p.currentX + p.w / 2;
+                let cy = p.currentY + p.h / 2;
+                ctx.translate(cx, cy);
+                ctx.rotate(p.rotation * Math.PI / 180);
+                ctx.translate(-cx, -cy);
+            }
+
+            if (p.hidden) {
+                ctx.fillStyle = 'rgba(20, 20, 30, 0.95)';
+                ctx.fillRect(p.currentX, p.currentY, p.w, p.h);
+                ctx.strokeStyle = '#9900ff';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(p.currentX, p.currentY, p.w, p.h);
+                ctx.fillStyle = '#9900ff';
+                ctx.font = `${Math.min(p.h * 0.4, 60)}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('?', p.currentX + p.w / 2, p.currentY + p.h / 2);
+            } else {
+                ctx.drawImage(
+                    sourceImage,
+                    p.sx, p.sy, p.sw, p.sh,
+                    p.currentX, p.currentY, p.w, p.h
+                );
+            }
+
+            if (p.locked) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(p.currentX, p.currentY, p.w, p.h);
+            } else {
+                ctx.strokeStyle = isDragging ? '#00f3ff' : 'rgba(0, 243, 255, 0.5)';
+                ctx.lineWidth = isDragging ? 3 : 1;
+                if (isDragging) {
+                    ctx.shadowColor = '#00f3ff';
+                    ctx.shadowBlur = 15;
+                    // Slightly scale up while dragging
+                    // (Translating to center, scale, translate back could be added here for polish)
+                } else {
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                    ctx.shadowBlur = 5;
+                }
+                ctx.strokeRect(p.currentX, p.currentY, p.w, p.h);
+            }
+            ctx.restore();
+        }
+
+        // Start
+        window.onload = init;
+
+    </script>
+</body>
+
+</html>
