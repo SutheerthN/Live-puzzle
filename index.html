@@ -19,6 +19,38 @@
             --success-color: #00ff88;
         }
 
+        :root.light-mode {
+            --glass-bg: rgba(255, 255, 255, 0.75);
+            --glass-border: rgba(0, 0, 0, 0.15);
+            --text-color: #222222;
+            --bg-color: #f0f0f5;
+        }
+
+        .light-mode .mode-card {
+            background: rgba(0,0,0,0.03) !important;
+        }
+        .light-mode .mode-card p, .light-mode .mode-settings label {
+            color: #444 !important;
+        }
+        .light-mode input, .light-mode select {
+            background: rgba(0,0,0,0.05) !important;
+            color: #111 !important;
+            border-color: rgba(0,0,0,0.2) !important;
+        }
+        .light-mode .title {
+            color: #111 !important;
+            text-shadow: none !important;
+            -webkit-text-stroke: 0px !important;
+        }
+        .light-mode .btn-secondary {
+            background: rgba(0,0,0,0.1);
+            color: #111;
+        }
+        .light-mode .instruction-overlay, .light-mode #memorizeOverlay {
+            color: #111 !important;
+            text-shadow: none !important;
+        }
+
         * {
             box-sizing: border-box;
             touch-action: none;
@@ -162,6 +194,22 @@
             text-align: center;
             padding: 40px 30px;
             transition: opacity 0.3s;
+        }
+
+        /* Custom Scrollbar for Menu */
+        .menu-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .menu-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        .menu-container::-webkit-scrollbar-thumb {
+            background: var(--neon-color);
+            border-radius: 10px;
+        }
+        .menu-container::-webkit-scrollbar-thumb:hover {
+            background: #fff;
         }
 
         .title {
@@ -465,7 +513,7 @@
             right: 15px;
             background: transparent;
             border: none;
-            color: white;
+            color: var(--text-color);
             font-size: 1.5rem;
             cursor: pointer;
             transition: color 0.3s;
@@ -501,8 +549,11 @@
         </div>
 
         <!-- Main Menu -->
-        <div class="glass-panel menu-container" id="mainMenu" style="width: 95%; max-width: 1000px; padding: 30px;">
-            <div class="title" style="font-size: 2.5rem; margin-bottom: 30px;">FRAME PUZZLE</div>
+        <div class="glass-panel menu-container" id="mainMenu" style="width: 95%; max-width: 1000px; padding: 30px; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                <div class="title" style="font-size: 2.5rem; margin-bottom: 0;">FRAME PUZZLE</div>
+                <button id="btnThemeToggle" title="Toggle Theme" style="background: none; border: none; font-size: 2rem; cursor: pointer; transition: transform 0.2s;">☀️</button>
+            </div>
 
             <div id="modeAccordion"
                 style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; text-align: left; align-items: stretch;">
@@ -711,6 +762,69 @@
                     </div>
                 </div>
 
+                <!-- PHANTOM CORE CARD -->
+                <div class="mode-card" id="cardPhantom" style="border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.05); cursor: pointer; opacity: 0.7; transition: all 0.3s; display: flex; flex-direction: column;">
+                    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h3 style="color: #00ffff; margin: 0 0 10px 0; text-align: center; font-size: 1.5rem; text-shadow: 0 0 10px rgba(0,255,255,0.5);">PHANTOM CORE</h3>
+                        <p style="font-size: 0.9rem; margin: 0; text-align: center; color: #ddd;">Correct pieces dissolve into the void.</p>
+                    </div>
+                    <div class="mode-settings hidden" id="settingsPhantom" style="padding: 0 20px 20px 20px; text-align: center;">
+                        <hr style="border-color: rgba(0,255,255,0.3); margin-bottom: 20px;">
+                        <label style="color: #00ffff; font-size: 1.1rem; margin-right: 10px; display: block; margin-bottom: 10px;">Difficulty (NxN):</label>
+                        <input type="number" id="phantomDifficulty" min="1" max="10" value="3" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #00ffff; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem; margin-bottom: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-secondary" onclick="playSound('click'); uiElements.fileInput.click();" style="font-size: 0.9rem; padding: 12px;">Upload Image</button>
+                            <button class="btn btn-secondary" onclick="playSound('click'); startCamera();" style="font-size: 0.9rem; padding: 12px;">Use Camera</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SNIPER GRID CARD -->
+                <div class="mode-card" id="cardSniper" style="border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.05); cursor: pointer; opacity: 0.7; transition: all 0.3s; display: flex; flex-direction: column;">
+                    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h3 style="color: #ffd700; margin: 0 0 10px 0; text-align: center; font-size: 1.5rem; text-shadow: 0 0 10px rgba(255,215,0,0.5);">SNIPER GRID</h3>
+                        <p style="font-size: 0.9rem; margin: 0; text-align: center; color: #ddd;">Capture the moving target with precision.</p>
+                    </div>
+                    <div class="mode-settings hidden" id="settingsSniper" style="padding: 0 20px 20px 20px; text-align: center;">
+                        <hr style="border-color: rgba(255,215,0,0.3); margin-bottom: 20px;">
+                        <label style="color: #ffd700; font-size: 1.1rem; margin-right: 10px; display: block; margin-bottom: 10px;">Difficulty (NxN):</label>
+                        <input type="number" id="sniperDifficulty" min="1" max="10" value="3" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #ffd700; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem; margin-bottom: 15px;">
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-secondary" onclick="playSound('click'); uiElements.fileInput.click();" style="font-size: 0.9rem; padding: 12px;">Upload Image</button>
+                            <button class="btn btn-secondary" onclick="playSound('click'); startCamera();" style="font-size: 0.9rem; padding: 12px;">Use Camera</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GOD MIRROR CARD -->
+                <div class="mode-card" id="cardMirror" style="border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.05); cursor: pointer; opacity: 0.7; transition: all 0.3s; display: flex; flex-direction: column;">
+                    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h3 style="color: #dfa8ff; margin: 0 0 10px 0; text-align: center; font-size: 1.5rem; text-shadow: 0 0 10px rgba(223,168,255,0.5);">GOD MIRROR</h3>
+                        <p style="font-size: 0.9rem; margin: 0; text-align: center; color: #ddd;">Puzzle pieces are flipped. Reconstruct the mirror image.</p>
+                    </div>
+                    <div class="mode-settings hidden" id="settingsMirror" style="padding: 0 20px 20px 20px; text-align: center;">
+                        <hr style="border-color: rgba(223,168,255,0.3); margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 10px;">
+                            <div>
+                                <label style="color: #dfa8ff; font-size: 1.1rem; display: block; margin-bottom: 5px;">Diff:</label>
+                                <input type="number" id="mirrorDifficulty" min="1" max="10" value="3" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #dfa8ff; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem;">
+                            </div>
+                            <div>
+                                <label style="color: #dfa8ff; font-size: 1.1rem; display: block; margin-bottom: 5px;">Axis:</label>
+                                <select id="mirrorAxis" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid #dfa8ff; padding: 8px; border-radius: 5px; outline: none; text-align: center; width: 60px; font-size: 1.1rem; height: 38px;">
+                                    <option value="X" style="color: black">X</option>
+                                    <option value="Y" style="color: black">Y</option>
+                                    <option value="XY" style="color: black">XY</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            <button class="btn btn-secondary" onclick="playSound('click'); uiElements.fileInput.click();" style="font-size: 0.9rem; padding: 12px;">Upload Image</button>
+                            <button class="btn btn-secondary" onclick="playSound('click'); startCamera();" style="font-size: 0.9rem; padding: 12px;">Use Camera</button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
             <input type="file" id="fileInput" accept="image/*" style="display: none;">
@@ -789,7 +903,8 @@
             sound: true,
             haptic: true,
             handTracking: false,
-            snapSensitivity: 20,
+            mirrorAxis: 'X',
+            theme: 'dark',
             demoImageUrl: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&w=1080&q=80',
             voidTime: 10,
             doomTime: 10
@@ -807,6 +922,10 @@
 
         let startTime = 0;
         let timerInterval = null;
+        let phantomParticles = [];
+        let sniperTarget = null;
+        let sniperAttempts = 3;
+        let sniperNextId = 0;
         let moves = 0;
         let hintActiveTime = 0;
 
@@ -869,6 +988,16 @@
             canvas.height = window.innerHeight;
         }
 
+        function applyTheme() {
+            if (config.theme === 'light') {
+                document.documentElement.classList.add('light-mode');
+                document.getElementById('btnThemeToggle').innerText = '🌙';
+            } else {
+                document.documentElement.classList.remove('light-mode');
+                document.getElementById('btnThemeToggle').innerText = '☀️';
+            }
+        }
+
         function loadSettings() {
             try {
                 const saved = localStorage.getItem('framePuzzleSettings');
@@ -881,8 +1010,13 @@
                     config.sound = parsed.sound !== undefined ? parsed.sound : config.sound;
                     config.haptic = parsed.haptic !== undefined ? parsed.haptic : config.haptic;
                     config.handTracking = parsed.handTracking !== undefined ? parsed.handTracking : config.handTracking;
+                    if (parsed.doomTime !== undefined) config.doomTime = parsed.doomTime;
+                    if (parsed.mirrorAxis !== undefined) config.mirrorAxis = parsed.mirrorAxis;
+                    if (parsed.theme !== undefined) config.theme = parsed.theme;
                 }
             } catch (e) { }
+
+            applyTheme();
 
             if (config.gameMode === 'INITIATION') {
                 const diffSelect = document.getElementById('mainDifficulty');
@@ -900,6 +1034,13 @@
                 document.getElementById('doomTime').value = config.doomTime;
             } else if (config.gameMode === 'GRAVITY') {
                 document.getElementById('gravityDifficulty').value = config.gridCols;
+            } else if (config.gameMode === 'PHANTOM') {
+                document.getElementById('phantomDifficulty').value = config.gridCols;
+            } else if (config.gameMode === 'SNIPER') {
+                document.getElementById('sniperDifficulty').value = config.gridCols;
+            } else if (config.gameMode === 'MIRROR') {
+                document.getElementById('mirrorDifficulty').value = config.gridCols;
+                document.getElementById('mirrorAxis').value = config.mirrorAxis || 'X';
             }
             if (!config.sound) document.getElementById('toggleSound').classList.remove('active');
             if (!config.haptic) document.getElementById('toggleHaptic').classList.remove('active');
@@ -915,9 +1056,12 @@
                 gridCols: config.gridCols,
                 gridRows: config.gridRows,
                 voidTime: config.voidTime,
+                doomTime: config.doomTime,
+                mirrorAxis: config.mirrorAxis,
                 sound: config.sound,
                 haptic: config.haptic,
-                handTracking: config.handTracking
+                handTracking: config.handTracking,
+                theme: config.theme
             }));
         }
 
@@ -1035,6 +1179,27 @@
                     card.style.opacity = '1';
                     document.getElementById('settingsGravity').classList.remove('hidden');
                     document.documentElement.style.setProperty('--neon-color', '#00ff88');
+                } else if (config.gameMode === 'PHANTOM') {
+                    let card = document.getElementById('cardPhantom');
+                    card.style.borderColor = '#00ffff';
+                    card.style.background = 'rgba(0,255,255,0.1)';
+                    card.style.opacity = '1';
+                    document.getElementById('settingsPhantom').classList.remove('hidden');
+                    document.documentElement.style.setProperty('--neon-color', '#00ffff');
+                } else if (config.gameMode === 'SNIPER') {
+                    let card = document.getElementById('cardSniper');
+                    card.style.borderColor = '#ffd700';
+                    card.style.background = 'rgba(255,215,0,0.1)';
+                    card.style.opacity = '1';
+                    document.getElementById('settingsSniper').classList.remove('hidden');
+                    document.documentElement.style.setProperty('--neon-color', '#ffd700');
+                } else if (config.gameMode === 'MIRROR') {
+                    let card = document.getElementById('cardMirror');
+                    card.style.borderColor = '#dfa8ff';
+                    card.style.background = 'rgba(223,168,255,0.1)';
+                    card.style.opacity = '1';
+                    document.getElementById('settingsMirror').classList.remove('hidden');
+                    document.documentElement.style.setProperty('--neon-color', '#dfa8ff');
                 }
             }
 
@@ -1094,6 +1259,37 @@
                 let val = parseInt(document.getElementById('gravityDifficulty').value) || 3;
                 config.gridCols = val;
                 config.gridRows = val;
+                updateModeUI();
+                saveSettings();
+            });
+
+            document.getElementById('cardPhantom').addEventListener('click', () => {
+                if (config.gameMode !== 'PHANTOM') playSound('click');
+                config.gameMode = 'PHANTOM';
+                let val = parseInt(document.getElementById('phantomDifficulty').value) || 3;
+                config.gridCols = val;
+                config.gridRows = val;
+                updateModeUI();
+                saveSettings();
+            });
+
+            document.getElementById('cardSniper').addEventListener('click', () => {
+                if (config.gameMode !== 'SNIPER') playSound('click');
+                config.gameMode = 'SNIPER';
+                let val = parseInt(document.getElementById('sniperDifficulty').value) || 3;
+                config.gridCols = val;
+                config.gridRows = val;
+                updateModeUI();
+                saveSettings();
+            });
+
+            document.getElementById('cardMirror').addEventListener('click', () => {
+                if (config.gameMode !== 'MIRROR') playSound('click');
+                config.gameMode = 'MIRROR';
+                let val = parseInt(document.getElementById('mirrorDifficulty').value) || 3;
+                config.gridCols = val;
+                config.gridRows = val;
+                config.mirrorAxis = document.getElementById('mirrorAxis').value || 'X';
                 updateModeUI();
                 saveSettings();
             });
@@ -1168,6 +1364,54 @@
                 saveSettings();
             });
 
+            document.getElementById('phantomDifficulty').addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (val > 10) {
+                    showToast("Try other modes to increase the level.");
+                    val = 10; e.target.value = 10;
+                } else if (val < 1 || isNaN(val)) {
+                    val = 1; e.target.value = 1;
+                }
+                config.gameMode = 'PHANTOM';
+                config.gridCols = val;
+                config.gridRows = val;
+                saveSettings();
+            });
+
+            document.getElementById('sniperDifficulty').addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (val > 10) {
+                    showToast("Try other modes to increase the level.");
+                    val = 10; e.target.value = 10;
+                } else if (val < 1 || isNaN(val)) {
+                    val = 1; e.target.value = 1;
+                }
+                config.gameMode = 'SNIPER';
+                config.gridCols = val;
+                config.gridRows = val;
+                saveSettings();
+            });
+
+            document.getElementById('mirrorDifficulty').addEventListener('change', (e) => {
+                let val = parseInt(e.target.value);
+                if (val > 10) {
+                    showToast("Try other modes to increase the level.");
+                    val = 10; e.target.value = 10;
+                } else if (val < 1 || isNaN(val)) {
+                    val = 1; e.target.value = 1;
+                }
+                config.gameMode = 'MIRROR';
+                config.gridCols = val;
+                config.gridRows = val;
+                saveSettings();
+            });
+
+            document.getElementById('mirrorAxis').addEventListener('change', (e) => {
+                config.gameMode = 'MIRROR';
+                config.mirrorAxis = e.target.value;
+                saveSettings();
+            });
+
             document.getElementById('mainDifficulty').addEventListener('click', (e) => e.stopPropagation());
             document.getElementById('dimCols').addEventListener('click', (e) => e.stopPropagation());
             document.getElementById('dimRows').addEventListener('click', (e) => e.stopPropagation());
@@ -1177,6 +1421,17 @@
             document.getElementById('doomDifficulty').addEventListener('click', (e) => e.stopPropagation());
             document.getElementById('doomTime').addEventListener('click', (e) => e.stopPropagation());
             document.getElementById('gravityDifficulty').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('phantomDifficulty').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('sniperDifficulty').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('mirrorDifficulty').addEventListener('click', (e) => e.stopPropagation());
+            document.getElementById('mirrorAxis').addEventListener('click', (e) => e.stopPropagation());
+
+            document.getElementById('btnThemeToggle').addEventListener('click', () => {
+                playSound('click');
+                config.theme = config.theme === 'light' ? 'dark' : 'light';
+                applyTheme();
+                saveSettings();
+            });
 
             // Initial call to sync UI
             updateModeUI();
@@ -1574,6 +1829,32 @@
                 dragStart = { x: e.clientX, y: e.clientY };
                 frameRect = { x: e.clientX, y: e.clientY, w: 0, h: 0 };
                 activePointerId = e.pointerId;
+            } else if (state === GameState.PLAYING && config.gameMode === 'SNIPER') {
+                let hit = false;
+                for (let i = puzzlePieces.length - 1; i >= 0; i--) {
+                    let p = puzzlePieces[i];
+                    if (!p.locked && e.clientX >= p.currentX && e.clientX <= p.currentX + p.w && e.clientY >= p.currentY && e.clientY <= p.currentY + p.h) {
+                        hit = true;
+                        if (p.id === sniperNextId) {
+                            p.locked = true;
+                            p.currentX = p.targetX;
+                            p.currentY = p.targetY;
+                            sniperNextId++;
+                            playSound('snap');
+                            vibrate(20);
+                            checkWin();
+                        } else {
+                            playSound('click');
+                            vibrate([50, 50, 50]);
+                            showToast("MISFIRE! Pattern Reset.");
+                            sniperNextId = 0;
+                            puzzlePieces.forEach(piece => piece.locked = false);
+                            shufflePieces();
+                        }
+                        break;
+                    }
+                }
+                if (hit) return;
             } else if (state === GameState.PLAYING && !draggingPiece) {
                 for (let i = puzzlePieces.length - 1; i >= 0; i--) {
                     let p = puzzlePieces[i];
@@ -1613,8 +1894,11 @@
         function handlePointerUp(e) {
             pointers.delete(e.pointerId);
             if (state === GameState.SELECTING && e.pointerId === activePointerId) {
-                if (frameRect && frameRect.w > 50 && frameRect.h > 50) createPuzzleFromSelection();
-                else { frameRect = null; dragStart = null; }
+                if (frameRect && frameRect.w > 50 && frameRect.h > 50) {
+                    createPuzzleFromSelection();
+                } else {
+                    frameRect = null; dragStart = null;
+                }
                 activePointerId = null;
             } else if (state === GameState.PLAYING && draggingPiece && e.pointerId === activePointerId) {
                 const p = draggingPiece;
@@ -1672,7 +1956,7 @@
             const pieceW = frameRect.w / cols, pieceH = frameRect.h / rows;
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
-                    puzzlePieces.push({ id: r * cols + c, targetX: frameRect.x + c * pieceW, targetY: frameRect.y + r * pieceH, sx: sx + (c * sw / cols), sy: sy + (r * sh / rows), sw: sw / cols, sh: sh / rows, w: pieceW, h: pieceH, currentX: 0, currentY: 0, locked: false, hidden: false, vx: 0, vy: 0 });
+                    puzzlePieces.push({ id: r * cols + c, targetX: frameRect.x + c * pieceW, targetY: frameRect.y + r * pieceH, sx: sx + (c * sw / cols), sy: sy + (r * sh / rows), sw: sw / cols, sh: sh / rows, w: pieceW, h: pieceH, currentX: 0, currentY: 0, locked: false, hidden: false, vx: 0, vy: 0, opacity: 1.0 });
                 }
             }
             shufflePieces(); moves = 0; uiElements.movesDisp.innerText = moves; vibrate([30, 50, 30]);
@@ -1696,6 +1980,14 @@
                     p.targetRotation = p.rotation;
                 }
             });
+            if (config.gameMode === 'SNIPER') {
+                sniperNextId = 0;
+                puzzlePieces.forEach(p => {
+                    let speed = 2 + config.gridCols * 0.5;
+                    p.vx = (Math.random() - 0.5) * speed * 2;
+                    p.vy = (Math.random() - 0.5) * speed * 2;
+                });
+            }
         }
 
         function triggerDoomReshuffle() {
@@ -1758,7 +2050,20 @@
 
         function gameLoop(time) {
             requestAnimationFrame(gameLoop);
-            ctx.fillStyle = '#0f0f15'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = config.theme === 'light' ? '#f0f0f5' : '#0f0f15'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (state === GameState.PLAYING && config.gameMode === 'SNIPER') {
+                puzzlePieces.forEach(p => {
+                    if (p.locked) return;
+                    p.currentX += p.vx;
+                    p.currentY += p.vy;
+                    if (p.currentX <= 0) { p.currentX = 0; p.vx *= -1; }
+                    if (p.currentX + p.w >= canvas.width) { p.currentX = canvas.width - p.w; p.vx *= -1; }
+                    if (p.currentY <= 0) { p.currentY = 0; p.vy *= -1; }
+                    if (p.currentY + p.h >= canvas.height) { p.currentY = canvas.height - p.h; p.vy *= -1; }
+                });
+            }
 
             if (state === GameState.PLAYING && config.gameMode === 'GRAVITY') {
                 for (let i = 0; i < puzzlePieces.length; i++) {
@@ -1818,13 +2123,15 @@
 
             if (state === GameState.SELECTING && sourceImage) {
                 const pos = calculateImageRenderPos();
+
                 ctx.globalAlpha = 0.4; ctx.drawImage(sourceImage, pos.x, pos.y, pos.w, pos.h); ctx.globalAlpha = 1.0;
+                
                 if (frameRect) {
                     ctx.save(); ctx.beginPath(); ctx.rect(frameRect.x, frameRect.y, frameRect.w, frameRect.h); ctx.clip(); ctx.drawImage(sourceImage, pos.x, pos.y, pos.w, pos.h); ctx.restore();
-                    ctx.strokeStyle = config.gameMode === 'DIMENSION' ? '#ff0055' : '#00f3ff';
-                    ctx.lineWidth = 3;
+                    ctx.strokeStyle = config.gameMode === 'DIMENSION' ? '#ff0055' : (config.gameMode === 'SNIPER' ? '#ffd700' : '#00f3ff');
+                    ctx.lineWidth = config.gameMode === 'SNIPER' ? 4 : 3;
                     ctx.strokeRect(frameRect.x, frameRect.y, frameRect.w, frameRect.h);
-                    ctx.strokeStyle = config.gameMode === 'DIMENSION' ? 'rgba(255, 0, 85, 0.4)' : (config.gameMode === 'CHAOS' ? 'rgba(255, 170, 0, 0.3)' : 'rgba(0, 243, 255, 0.3)');
+                    ctx.strokeStyle = config.gameMode === 'DIMENSION' ? 'rgba(255, 0, 85, 0.4)' : (config.gameMode === 'CHAOS' ? 'rgba(255, 170, 0, 0.3)' : (config.gameMode === 'SNIPER' ? 'rgba(255, 215, 0, 0.3)' : 'rgba(0, 243, 255, 0.3)'));
                     ctx.lineWidth = 1;
                     const cW = frameRect.w / config.gridCols;
                     const cH = frameRect.h / config.gridRows;
@@ -1875,6 +2182,35 @@
                 }
             }
 
+            if (state === GameState.PLAYING && config.gameMode === 'PHANTOM') {
+                puzzlePieces.forEach(p => {
+                    if (p.locked && p.opacity > 0) {
+                        p.opacity -= 0.02;
+                        if (p.opacity < 0) p.opacity = 0;
+                        if (Math.random() < 0.3) {
+                            phantomParticles.push({
+                                x: p.currentX + Math.random() * p.w,
+                                y: p.currentY + Math.random() * p.h,
+                                vx: (Math.random() - 0.5) * 1,
+                                vy: -Math.random() * 2,
+                                life: 1.0,
+                                color: '#00ffff'
+                            });
+                        }
+                    }
+                });
+                phantomParticles.forEach(part => {
+                    part.x += part.vx;
+                    part.y += part.vy;
+                    part.life -= 0.02;
+                    ctx.globalAlpha = part.life;
+                    ctx.fillStyle = part.color;
+                    ctx.fillRect(part.x, part.y, 3, 3);
+                });
+                phantomParticles = phantomParticles.filter(part => part.life > 0);
+                ctx.globalAlpha = 1.0;
+            }
+
             if (config.handTracking && htCursor.active) {
                 ctx.beginPath();
                 ctx.arc(htCursor.x, htCursor.y, htWasPinched ? 10 : 15, 0, Math.PI * 2);
@@ -1888,6 +2224,19 @@
 
         function drawPiece(p, isDragging = false) {
             ctx.save();
+            
+            if (config.gameMode === 'PHANTOM') {
+                ctx.globalAlpha = p.opacity !== undefined ? p.opacity : 1.0;
+            }
+
+            if (config.gameMode === 'MIRROR') {
+                let cx = p.currentX + p.w / 2;
+                let cy = p.currentY + p.h / 2;
+                ctx.translate(cx, cy);
+                if (config.mirrorAxis === 'X' || config.mirrorAxis === 'XY') ctx.scale(-1, 1);
+                if (config.mirrorAxis === 'Y' || config.mirrorAxis === 'XY') ctx.scale(1, -1);
+                ctx.translate(-cx, -cy);
+            }
 
             if (config.gameMode === 'DIMENSION' && !p.locked && Math.random() < 0.02) {
                 ctx.translate((Math.random() - 0.5) * 6, (Math.random() - 0.5) * 6);
